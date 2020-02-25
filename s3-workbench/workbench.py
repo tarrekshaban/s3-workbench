@@ -1,5 +1,5 @@
 import boto3
-from os import path
+from os import path, listdir
 from io import StringIO
 import numpy as np
 import pandas as pd
@@ -70,7 +70,7 @@ class Workbench:
 
     def delete_object(self, object_key):
         if not self.validate_key_exisits(object_key):
-            raise Exception("Key {k} does not exisit in bucket.".format(k=key))
+            raise Exception("Key {k} does not exisit in bucket.".format(k=object_key))
         self.s3.Object(self.bucket_name, object_key).delete()
 
     def delete_objects(self, object_keys):
@@ -101,9 +101,34 @@ class Workbench:
         response = self.s3.Object(self.bucket_name, key).put(Body=csv_buffer.getvalue())
         return response['ResponseMetadata']['HTTPStatusCode']
 
+    def download_object(self, key, force=False):
+        if not isinstance(key, str):
+            raise Exception("Key {k} is not a string.".format(k=key))
+        if not self.validate_key_exisits(key):
+            raise Exception("Key {k} does not exisit in bucket.".format(k=key))
+
+        translated_key = key.replace("/", "\\")
+        contents = listdir(self.data_dir)
+        if translated_key in contents and not force:
+            return 0
+        loc = self.data_dir + translated_key
+        self.bucket.download_file(key, loc)
+        return 1
+
+    def download_objects(self, keys, force_keys=[]):
+        count = 0
+        for key in keys:
+            if key in force_keys:
+                count += self.download_object(key, force=True)
+            else:
+                count += self.download_object(key)
+        return count
+
 if __name__ == "__main__":
     data_dir = "/home/tarrek/Projects/twitter/data/"
     bucket = "primary-tweets-2020"
     twitter = Workbench(bucket)
-    
+    twitter.set_data_directory(data_dir)
+    print(twitter.download_objects(["clean/tweets_2020-01-01.csv", "clean/tweets_2020-01-02.csv"]))
+
     # df = pd.DataFrame(np.random.randint(0,100,size=(100, 4)), columns=list('ABCD'))
