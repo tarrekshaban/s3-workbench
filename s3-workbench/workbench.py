@@ -6,7 +6,7 @@ import pandas as pd
 
 class Workbench:
     def __init__(self, bucket, data_dir=None):
-        self.data_dir = data_dir
+        self.data_dir = data_dir if data_dir is None else self.set_data_directory(data_dir)
         self.s3 = boto3.resource('s3', use_ssl=False)
         self.bucket = self.s3.Bucket(bucket)
         self.bucket_name = bucket
@@ -123,12 +123,3 @@ class Workbench:
             else:
                 count += self.download_object(key)
         return count
-
-if __name__ == "__main__":
-    data_dir = "/home/tarrek/Projects/twitter/data/"
-    bucket = "primary-tweets-2020"
-    twitter = Workbench(bucket)
-    twitter.set_data_directory(data_dir)
-    print(twitter.download_objects(["clean/tweets_2020-01-01.csv", "clean/tweets_2020-01-02.csv"]))
-
-    # df = pd.DataFrame(np.random.randint(0,100,size=(100, 4)), columns=list('ABCD'))
